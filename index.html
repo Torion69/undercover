@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Undercover</title>
+    <style>
+      :root {
+        --bg: #f6f4ef;
+        --cd: #fff;
+        --tx: #1d1d1f;
+        --mu: #6b6b70;
+        --ac: #e4572e;
+        --ok: #2e9e6b;
+        --bd: #e3e0d8;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #141416;
+          --cd: #202024;
+          --tx: #f2f2f4;
+          --mu: #9a9aa2;
+          --bd: #34343a;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #141416;
+        --cd: #202024;
+        --tx: #f2f2f4;
+        --mu: #9a9aa2;
+        --bd: #34343a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--tx);
+        font:
+          16px/1.4 system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      #app {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 4px 0 14px;
+      }
+      h2 {
+        font-size: 15px;
+        color: var(--mu);
+        margin: 20px 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .card {
+        background: var(--cd);
+        border: 1px solid var(--bd);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 10px;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 14px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--ac);
+        color: #fff;
+        font-weight: 600;
+        margin-top: 10px;
+      }
+      .btn.s {
+        background: var(--cd);
+        color: var(--tx);
+        border: 1px solid var(--bd);
+      }
+      .btn.g {
+        background: var(--ok);
+      }
+      .btn:disabled {
+        opacity: 0.4;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        padding: 8px 14px;
+        border-radius: 99px;
+        border: 1px solid var(--bd);
+        background: var(--cd);
+      }
+      .chip.on {
+        background: var(--ac);
+        color: #fff;
+        border-color: var(--ac);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .st {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .st button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid var(--bd);
+        background: var(--cd);
+        font-size: 20px;
+      }
+      .st b {
+        min-width: 24px;
+        text-align: center;
+        font-size: 20px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        background: var(--cd);
+        margin-top: 6px;
+      }
+      .big {
+        font-size: 34px;
+        font-weight: 700;
+        text-align: center;
+        margin: 18px 0;
+      }
+      .mu {
+        color: var(--mu);
+      }
+      .c {
+        text-align: center;
+      }
+      .pl {
+        padding: 14px;
+        border: 1px solid var(--bd);
+        border-radius: 12px;
+        background: var(--cd);
+        margin-bottom: 8px;
+        width: 100%;
+        text-align: left;
+      }
+      .pl.dead {
+        opacity: 0.45;
+        text-decoration: line-through;
+      }
+      .x {
+        background: none;
+        border: 0;
+        color: var(--mu);
+        font-size: 20px;
+      }
+      .dis {
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      /*
+        Undercover : vue d'ensemble du code
+        - DEF : thèmes de mots par défaut (paires civil / undercover)
+        - T : thèmes de l'utilisateur, sauvegardés dans localStorage
+        - S : état de la partie (écran courant, joueurs, rôles, tour, mode)
+        - render() dessine l'écran correspondant à S.v
+      */
+      /* Chaque thème = des séries de mots (5 ou 10). Au début de la partie : une série est tirée, puis 2 mots au hasard (civils / undercover). */
+      const DEF = {
+        Nourriture: [
+          ["Pizza", "Burger", "Sushi", "Raclette", "Crêpe"],
+          ["Croissant", "Baguette", "Brioche", "Donut", "Pancake"],
+          ["Café", "Thé", "Chocolat chaud", "Jus d'orange", "Limonade"],
+        ],
+        Animaux: [
+          ["Chat", "Tigre", "Loup", "Renard", "Panda"],
+          ["Dauphin", "Requin", "Baleine", "Pieuvre", "Phoque"],
+          ["Pigeon", "Corbeau", "Aigle", "Perroquet", "Canard"],
+        ],
+        Objets: [
+          ["Stylo", "Ciseaux", "Règle", "Agrafeuse", "Gomme"],
+          ["Canapé", "Lit", "Chaise", "Hamac", "Tabouret"],
+          ["Montre", "Réveil", "Boussole", "Calculatrice", "Lunettes"],
+        ],
+        Lieux: [
+          ["Plage", "Piscine", "Lac", "Spa", "Hammam"],
+          ["Cinéma", "Théâtre", "Musée", "Cirque", "Opéra"],
+          ["Gare", "Aéroport", "Port", "Métro", "Parking"],
+        ],
+        Sport: [
+          ["Football", "Rugby", "Basket", "Handball", "Volley"],
+          ["Tennis", "Badminton", "Ping-pong", "Squash", "Golf"],
+          ["Ski", "Snowboard", "Surf", "Skate", "Patinage"],
+        ],
+        Animés: [
+          ["Naruto", "Luffy", "Goku", "Ichigo", "Tanjiro"],
+          ["Sasuke", "Vegeta", "Zoro", "Levi", "Light Yagami"],
+          ["Pikachu", "Totoro", "Doraemon", "Hello Kitty", "Kirby"],
+          ["One Piece", "Dragon Ball", "Death Note", "Attack on Titan", "Demon Slayer"],
+        ],
+        "Mèmes & associations": [
+          ["Mbappé", "Sonic", "Flash", "Usain Bolt", "TGV"],
+          ["Shrek", "Gigachad", "Pepe", "Doge", "Nyan Cat"],
+          ["Among Us", "Minecraft", "Fortnite", "Roblox", "Clash Royale"],
+          ["Rickroll", "Troll face", "Chuck Norris", "Baby Yoda", "Mario"],
+        ],
+      };
+      let T = null;
+      try {
+        T = JSON.parse(localStorage.getItem("uc_t2"));
+      } catch (e) {}
+      if (!T) T = JSON.parse(JSON.stringify(DEF));
+      const save = () => {
+        try {
+          localStorage.setItem("uc_t2", JSON.stringify(T));
+        } catch (e) {}
+      };
+      const E = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      const NAMES = "👥 Prénoms des joueurs";
+      const S = {
+        v: "setup",
+        sel: new Set([NAMES, ...Object.keys(T)]),
+        n: 5,
+        u: 1,
+        names: [],
+        p: [],
+        i: 0,
+        show: false,
+        round: 1,
+        last: null,
+        win: null,
+        starter: "",
+        mode: "mw",
+        night: true,
+        rl: [],
+        nl: [],
+        ni: 0,
+        nv: [],
+      };
+      const maxU = (n) =>
+        S.mode == "cmp"
+          ? Math.max(1, Math.ceil(n / 2) - 1)
+          : Math.max(1, Math.ceil((n - 1) / 2) - 1);
+      const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+      const shuf = (a) => {
+        a = a.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      };
+      function go(v) {
+        S.v = v;
+        render();
+      }
+      function tog(t) {
+        S.sel.has(t) ? S.sel.delete(t) : S.sel.add(t);
+        render();
+      }
+      function chg(k, d) {
+        S[k] += d;
+        S.n = Math.min(12, Math.max(4, S.n));
+        S.u = Math.min(maxU(S.n), Math.max(1, S.u));
+        render();
+      }
+      function cands() {
+        return [].concat(...[...S.sel].filter((t) => T[t]).map((t) => T[t]));
+      }
+      function words() {
+        const g = [...cands(), ...(S.sel.has(NAMES) ? [S.names] : [])];
+        return shuf([...new Set(rnd(g))]).slice(0, 2);
+      }
+      // Répartit les rôles (civils, undercovers, Mister White)
+      function roles() {
+        const w = words(),
+          c = S.mode == "cmp";
+        const r = shuf([
+          ...Array(S.n - (c ? 0 : 1) - S.u).fill("civil"),
+          ...Array(S.u).fill("under"),
+          ...(c ? [] : ["mw"]),
+        ]);
+        S.p = S.names.map((nm, i) => ({
+          name: nm,
+          role: r[i],
+          word: r[i] == "civil" ? w[0] : r[i] == "under" ? w[1] : null,
+          alive: true,
+        }));
+        S.round = 1;
+        S.i = 0;
+        S.show = false;
+        S.win = null;
+        S.rl = S.p.map((_, i) => i);
+        pickStarter();
+      }
+      function pickStarter() {
+        const c = S.p.filter((x) => x.alive && x.role != "mw");
+        S.starter = rnd(c.length ? c : S.p.filter((x) => x.alive)).name;
+      }
+      // Lance la partie
+      function start() {
+        S.names = Array(S.n).fill("");
+        S.i = 0;
+        S.v = "name";
+        render();
+      }
+      function nameOk() {
+        const v = document.getElementById("nm").value.trim();
+        S.names[S.i] = v || "Joueur " + (S.i + 1);
+        if (S.i < S.n - 1) {
+          S.i++;
+          render();
+        } else {
+          roles();
+          go("reveal");
+        }
+      }
+      function next() {
+        S.show = false;
+        if (S.i < S.rl.length - 1) {
+          S.i++;
+          render();
+        } else go("game");
+      }
+      // Élimine un joueur après le vote
+      function elim(i) {
+        const p = S.p[i];
+        p.alive = false;
+        S.last = p;
+        go("res");
+      }
+      // Vérifie si une équipe a gagné
+      function check() {
+        const a = S.p.filter((x) => x.alive),
+          c = a.filter((x) => x.role == "civil").length,
+          u = a.filter((x) => x.role == "under").length,
+          m = a.filter((x) => x.role == "mw").length;
+        if (u + m == 0) return "civ";
+        if (u >= c) return "bad";
+        if (a.length <= 2) return "bad";
+        return null;
+      }
+      function cont(w) {
+        S.win = w || check();
+        if (S.win) return go("end");
+        S.round++;
+        pickStarter();
+        if (S.mode == "cmp") return newWords();
+        go("game");
+      }
+      function setMode(m) {
+        S.mode = m;
+        S.u = Math.min(S.u, maxU(S.n));
+        render();
+      }
+      function newWords() {
+        const w = words();
+        S.p.forEach((p) => (p.word = p.role == "civil" ? w[0] : p.role == "under" ? w[1] : null));
+        S.rl = S.p.map((p, i) => (p.alive ? i : -1)).filter((i) => i >= 0);
+        S.i = 0;
+        S.show = false;
+        go("reveal");
+      }
+      function endTurn() {
+        if (S.mode == "cmp" && S.night) {
+          S.nl = S.p.map((p, i) => (p.alive ? i : -1)).filter((i) => i >= 0);
+          S.ni = 0;
+          S.nv = [];
+          S.show = false;
+          go("night");
+        } else go("vote");
+      }
+      // Mode nuit : un undercover désigne un joueur à éliminer
+      function nightPick(i) {
+        const p = S.p[S.nl[S.ni]];
+        if (p.role == "under") S.nv.push(i);
+        S.show = false;
+        if (S.ni < S.nl.length - 1) {
+          S.ni++;
+          render();
+          return;
+        }
+        const c = {};
+        S.nv.forEach((x) => (c[x] = (c[x] || 0) + 1));
+        const m = Math.max(...Object.values(c));
+        const k = rnd(Object.keys(c).filter((x) => c[x] == m));
+        S.p[k].alive = false;
+        S.last = S.p[k];
+        go("nres");
+      }
+      function afterNight() {
+        const w = check();
+        if (w) {
+          S.win = w;
+          go("end");
+        } else go("vote");
+      }
+      function replay() {
+        S.n = S.names.length;
+        roles();
+        go("reveal");
+      }
+      // Ajoute une paire de mots à un thème
+      function addPair() {
+        const th =
+            document.getElementById("nt").value.trim() || document.getElementById("ts").value,
+          w = [
+            ...new Set(
+              document
+                .getElementById("w1")
+                .value.split(/[,;\n]/)
+                .map((x) => x.trim())
+                .filter(Boolean),
+            ),
+          ];
+        if (!th || w.length < 2) return;
+        (T[th] = T[th] || []).push(w);
+        S.sel.add(th);
+        save();
+        render();
+      }
+      // Supprime une paire de mots
+      function delPair(t, i) {
+        T[t].splice(i, 1);
+        if (!T[t].length) {
+          delete T[t];
+          S.sel.delete(t);
+        }
+        save();
+        render();
+      }
+      const back = '<button class="btn s" onclick="go(\'setup\')">Retour</button>';
+      const role = { civil: "Civil", under: "Undercover", mw: "Mister White" };
+      // Dessine l'écran courant
+      function render() {
+        let h = "";
+        const v = S.v;
+        if (v == "setup") {
+          h = `<h1>🕵️ Undercover</h1><h2>Mode de jeu</h2>
+    <button class="pl" style="${S.mode == "mw" ? "border-color:var(--ac);border-width:2px" : ""}" onclick="setMode('mw')"><b>Mister White</b><div class="mu">Civils, undercovers et un Mister White sans mot.</div></button>
+    <button class="pl" style="${S.mode == "cmp" ? "border-color:var(--ac);border-width:2px" : ""}" onclick="setMode('cmp')"><b>Deux camps</b><div class="mu">Rôles connus, nouveau mot à chaque tour.</div></button>
+    ${S.mode == "cmp" ? `<div class="card row"><span>Élimination nocturne des undercovers</span><button class="chip ${S.night ? "on" : ""}" onclick="S.night=!S.night;render()">${S.night ? "Activée" : "Désactivée"}</button></div>` : ""}
+    <div class="row"><h2>Thèmes</h2><button class="x" style="font-size:14px" onclick="go('themes')">Gérer ›</button></div>
+    <div class="chips"><button class="chip ${S.sel.has(NAMES) ? "on" : ""}" onclick="tog(NAMES)">${NAMES}</button>${Object.keys(
+      T,
+    )
+      .map(
+        (t) =>
+          `<button class="chip ${S.sel.has(t) ? "on" : ""}" onclick="tog('${E(t).replace(/'/g, "\\'")}')">${E(t)} (${T[t].length})</button>`,
+      )
+      .join("")}</div>
+    <h2>Joueurs</h2><div class="card row"><span>Nombre de joueurs</span><div class="st"><button onclick="chg('n',-1)">−</button><b>${S.n}</b><button onclick="chg('n',1)">+</button></div></div>
+    <div class="card row"><span>Undercovers</span><div class="st"><button onclick="chg('u',-1)">−</button><b>${S.u}</b><button onclick="chg('u',1)">+</button></div></div>
+    <div class="mu">${S.n - (S.mode == "cmp" ? 0 : 1) - S.u} civils · ${S.u} undercover${S.u > 1 ? "s" : ""}${S.mode == "cmp" ? "" : " · 1 Mister White"}</div>
+    <button class="btn" ${cands().length || S.sel.has(NAMES) ? "" : "disabled"} onclick="start()">Commencer</button>`;
+        } else if (v == "themes") {
+          h =
+            `<h1>Thèmes</h1>` +
+            Object.keys(T)
+              .map(
+                (t) =>
+                  `<div class="card"><b>${E(t)}</b>${T[t].map((p, i) => `<div class="row"><span>${p.map((x) => E(x)).join(" · ")}</span><button class="x" onclick="delPair('${E(t).replace(/'/g, "\\'")}',${i})">✕</button></div>`).join("")}</div>`,
+              )
+              .join("") +
+            `<h2>Ajouter une série de mots</h2><div class="card"><select id="ts">${Object.keys(T)
+              .map((t) => `<option>${E(t)}</option>`)
+              .join("")}</select>
+    <input id="nt" placeholder="…ou nouveau thème"><textarea id="w1" rows="3" placeholder="5 ou 10 mots, séparés par des virgules"></textarea>
+    <button class="btn" onclick="addPair()">Ajouter</button></div>` +
+            back;
+        } else if (v == "name") {
+          h = `<div class="mu c">Joueur ${S.i + 1} / ${S.n}</div><div class="big">Ton prénom ?</div><input id="nm" autofocus autocomplete="off" placeholder="Prénom"><button class="btn" onclick="nameOk()">Valider</button>`;
+        } else if (v == "reveal") {
+          const p = S.p[S.rl[S.i]],
+            L = S.rl.length;
+          h = S.show
+            ? `<div class="mu c">${E(p.name)}</div><div class="mu c" style="margin-top:20px">${S.mode == "cmp" ? "Tu es " + role[p.role] + " · ton mot" : "Ton mot"}</div><div class="big">${p.word ? E(p.word) : "Aucun mot"}</div><div class="c mu">${
+                S.mode == "cmp" && p.role == "under"
+                  ? "Complices : " +
+                    (S.p
+                      .filter((x) => x.role == "under" && x !== p)
+                      .map((x) => E(x.name))
+                      .join(", ") || "aucun") +
+                    "<br>"
+                  : ""
+              }${p.role == "mw" ? "Tu es Mister White : bluffe pour deviner le mot !" : "Retiens-le, puis cache l'écran."}</div><button class="btn" onclick="next()">${S.i < L - 1 ? "Masquer et passer au suivant" : "Masquer et continuer"}</button>`
+            : `<div class="mu c">Joueur ${S.i + 1} / ${L}</div><div class="big">${E(p.name)}</div><div class="c mu">Prends le téléphone, personne ne doit regarder.</div><button class="btn" onclick="S.show=true;render()">Voir mon mot</button>`;
+        } else if (v == "game") {
+          h =
+            `<h1>Tour ${S.round}</h1><div class="card c">Chacun dit un mot à l'oral.<br><b>${E(S.starter)}</b> commence.</div>` +
+            S.p.map((p) => `<div class="pl ${p.alive ? "" : "dead"}">${E(p.name)}</div>`).join("") +
+            `<button class="btn" onclick="endTurn()">Fin du tour</button>`;
+        } else if (v == "vote") {
+          h =
+            `<h1>Qui est éliminé ?</h1><div class="mu" style="margin-bottom:10px">Après le vote oral, touche le joueur éliminé.</div>` +
+            S.p
+              .map((p, i) =>
+                p.alive ? `<button class="pl" onclick="elim(${i})">${E(p.name)}</button>` : "",
+              )
+              .join("") +
+            `<button class="btn s" onclick="go('game')">Annuler</button>`;
+        } else if (v == "res") {
+          const p = S.last;
+          h =
+            `<div class="big">${E(p.name)}<br><span style="font-size:22px">était ${role[p.role]}</span></div>` +
+            (p.role == "mw"
+              ? `<div class="card c">Mister White peut tenter de deviner le mot des civils.</div><button class="btn g" onclick="cont('mw')">Il a trouvé le mot !</button><button class="btn s" onclick="cont()">Raté, on continue</button>`
+              : `<button class="btn" onclick="cont()">Continuer</button>`);
+        } else if (v == "night") {
+          const p = S.p[S.nl[S.ni]],
+            tg = S.p
+              .map((x, i) =>
+                x.alive && x !== p && !(p.role == "under" && x.role == "under") ? i : -1,
+              )
+              .filter((i) => i >= 0);
+          h = S.show
+            ? `<h1>🌙 Nuit</h1><div class="mu" style="margin-bottom:10px">${E(p.name)}, désigne un joueur à éliminer. Seuls les votes des undercovers comptent.</div>` +
+              tg
+                .map(
+                  (i) => `<button class="pl" onclick="nightPick(${i})">${E(S.p[i].name)}</button>`,
+                )
+                .join("")
+            : `<div class="mu c">${S.ni + 1} / ${S.nl.length}</div><div class="big">${E(p.name)}</div><div class="c mu">Prends le téléphone, personne ne doit regarder.</div><button class="btn" onclick="S.show=true;render()">C'est moi</button>`;
+        } else if (v == "nres") {
+          h = `<div class="big">🌙 ${E(S.last.name)}<br><span style="font-size:22px">a été éliminé cette nuit</span></div><button class="btn" onclick="afterNight()">Continuer</button>`;
+        } else if (v == "end") {
+          const m = {
+            civ: "🎉 Les civils gagnent !",
+            bad: "😈 Les infiltrés gagnent !",
+            mw: "⚪ Mister White a deviné : il gagne !",
+          };
+          h =
+            `<div class="big">${m[S.win]}</div>` +
+            S.p
+              .map(
+                (p) =>
+                  `<div class="pl ${p.alive ? "" : "dead"}"><b>${E(p.name)}</b> · ${role[p.role]}${p.word ? " · " + E(p.word) : ""}</div>`,
+              )
+              .join("") +
+            `<button class="btn" onclick="replay()">Rejouer (mêmes joueurs)</button><button class="btn s" onclick="go('setup')">Menu</button>`;
+        }
+        document.getElementById("app").innerHTML = h;
+        const f = document.getElementById("nm");
+        if (f) f.focus();
+      }
+      render();
+    </script>
+  </body>
+</html>
