@@ -4,8 +4,6 @@ Version web du jeu de société Undercover, jouable sur un seul téléphone que 
 
 ![Capture d'écran](capture.png)
 
-**Démo :** https://Torion69.github.io/undercover/
-
 ## Principe
 
 Chaque joueur reçoit un mot en secret. Les civils ont tous le même mot, les undercovers un mot proche, et le Mister White n'en a aucun. À chaque tour, chacun décrit son mot à l'oral, puis le groupe vote pour éliminer un joueur.
